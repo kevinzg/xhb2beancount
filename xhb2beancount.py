@@ -191,10 +191,10 @@ def convert(xhb_filename):
     return beancount
 
 
-def main(filename):
-    beancount = convert(filename)
-    beancount.print(sys.stdout)
-
-
 if __name__ == '__main__':
-    main(sys.argv[1])
+    if len(sys.argv) != 2:
+        print(f'Usage: {sys.argv[0]} file.xhb', file=sys.stderr)
+        exit(1)
+
+    beancount = convert(sys.argv[1])
+    beancount.print(sys.stdout)
