@@ -209,21 +209,36 @@ def convert(xhb_filename):
     account_map = {}
 
     for item in chain(xhb.accounts.values(), xhb.categories.values()):
-        item['name'] = ACCOUNT_SEP.join((item['type'], item['name']))
+        name = ACCOUNT_SEP.join((item['type'], item['name']))
 
-        id_ = beancount.add_account(**item)
+        id_ = beancount.add_account(
+            name=name,
+            currency=item.get('currency'),
+            initial_amount=item.get('initial'),
+        )
+
         account_map[item['unique_id']] = id_
 
     for op in xhb.operations:
-        account_1 = beancount.accounts[account_map[op['account']]]
-        account_2 = beancount.accounts[account_map[op['category']]]
+        paymode = op.get('paymode')
+        main_account = beancount.accounts[account_map[op['account']]]
+        amount = op['amount']
+
+        if paymode == Homebank.INTERNAL_TRANSFER:
+            if amount < 0:
+                continue  # only register the postive transfer
+
+            other_account = beancount.accounts[account_map[op['dst_account']]]
+        else:
+            other_account = beancount.accounts[account_map[op['category']]]
 
         beancount.add_transaction(
             date=op['date'],
             payee=op.get('payee'),
             narration=op.get('info'),
-            accounts=(account_1, account_2),
-            amount=op['amount'],
+            main_account=main_account,
+            other_account=other_account,
+            amount=amount,
             currency=op['currency'],
             tags=op.get('tags'),
         )
