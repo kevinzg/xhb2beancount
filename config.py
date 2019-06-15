@@ -13,4 +13,10 @@ ACCOUNTS_DICT = {
     'Something': 'Something-Else',
 }
 
+TAGS_DICT = {
+}
+
+CATEGORIES_DICT = {
+}
+
 INCOME_FLAG = 0b10

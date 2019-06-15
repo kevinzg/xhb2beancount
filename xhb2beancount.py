@@ -10,15 +10,15 @@ import untangle
 from beancount.core import data as bc
 from beancount.parser import printer
 
-from config import (ACCOUNT_SEP, ACCOUNTS_DICT, ASSETS_ACCOUNT, DEFAULT_DATE,
-                    EXPENSE_ACCOUNT, INCOME_ACCOUNT, INCOME_FLAG)
-
-
-def translate_account_name(name):
-    return ACCOUNTS_DICT.get(name, name)
+from config import (ACCOUNT_SEP, ACCOUNTS_DICT, ASSETS_ACCOUNT,
+                    CATEGORIES_DICT, DEFAULT_DATE, DEFAULT_FLAG,
+                    EXPENSE_ACCOUNT, INCOME_ACCOUNT, INCOME_FLAG, TAGS_DICT)
 
 
 class Homebank:
+    INTERNAL_TRANSFER = '5'
+    TAG_SEP_REGEX = re.compile(r'[\s,]')
+
     def __init__(self, data=None):
         self.currencies = {}
         self.accounts = {}
@@ -42,11 +42,13 @@ class Homebank:
 
         for dict_, name in stuff:
             elements = getattr(data, name, [])
+
             for element in elements:
                 key = element['key']
                 dict_[key] = element._attributes
 
         operations = getattr(data, 'ope', [])
+
         for operation in operations:
             self.operations.append(operation._attributes)
 
@@ -58,7 +60,9 @@ class Homebank:
 
     def _get_category_type(self, category):
         flags = int(category.get('flags', 0))
+
         is_income = flags & INCOME_FLAG
+
         return INCOME_ACCOUNT if is_income else EXPENSE_ACCOUNT
 
     def _resolve_category_name(self, category):
@@ -73,33 +77,51 @@ class Homebank:
     def _postprocess_categories(self):
         for key, category in self.categories.items():
             name = self._resolve_category_name(category)
-            category['name'] = translate_account_name(name)
+            category['name'] = self._translate_category(name)
             category['type'] = self._get_category_type(category)
-            category['unique_id'] = f'cat_{key}'
+
+            category['unique_id'] = self._make_unique_id('category', key)
 
     def _postprocess_accounts(self):
         for key, account in self.accounts.items():
             name = account['name']
-            account['name'] = translate_account_name(name)
+            account['name'] = self._translate_account(name)
             account['type'] = ASSETS_ACCOUNT
-            account['initial_amount'] = self._parse_float(account['initial'])
+            account['initial'] = self._parse_float(account['initial'])
             account['currency'] = self.currencies[account['curr']]['iso']
-            account['unique_id'] = f'acc_{key}'
+
+            account['unique_id'] = self._make_unique_id('account', key)
 
     def _postprocess_operations(self):
         for op in self.operations:
             op['date'] = self._parse_date(op['date'])
             op['amount'] = self._parse_float(op['amount'])
+
             account = self.accounts[op['account']]
-            if 'payee' in op:
-                op['payee'] = self.payees[op['payee']]['name']
-            if 'category' in op:
-                op['category'] = self.categories[op['category']]['unique_id']
             if 'account' in op:
                 op['account'] = account['unique_id']
-            if 'tags' in op:
-                op['tags'] = [op['tags']]
+
+            if 'dst_account' in op:
+                dst_account = self.accounts[op['dst_account']]
+                op['dst_account'] = dst_account['unique_id']
+
             op['currency'] = self.currencies[account['curr']]['iso']
+
+            if 'payee' in op:
+                op['payee'] = self.payees[op['payee']]['name']
+
+            if 'category' in op:
+                op['category'] = self.categories[op['category']]['unique_id']
+
+            if 'tags' in op:
+                op['tags'] = [self._translate_tag(tag)
+                              for tag in self._split_tags(op['tags'])]
+
+    def _make_unique_id(self, kind, key):
+        return f'{kind}_{key}'
+
+    def _split_tags(self, tags):
+        return self.TAG_SEP_REGEX.split(tags)
 
     def _parse_float(self, value):
         value = float(value)
@@ -107,6 +129,15 @@ class Homebank:
 
     def _parse_date(self, value):
         return datetime.date(1, 1, 1) + datetime.timedelta(days=int(value) - 1)
+
+    def _translate_account(self, name):
+        return ACCOUNTS_DICT.get(name, name)
+
+    def _translate_category(self, name):
+        return CATEGORIES_DICT.get(name, name)
+
+    def _translate_tag(self, name):
+        return TAGS_DICT.get(name, name)
 
 
 class Beancount:
