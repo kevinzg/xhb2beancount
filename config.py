@@ -1,7 +1,7 @@
 import datetime
 
-
 DEFAULT_DATE = datetime.date(1970, 1, 1)
+DEFAULT_FLAG = '*'
 
 ACCOUNT_SEP = ':'
 
@@ -23,3 +23,5 @@ PAYEE_DICT = {
 }
 
 INCOME_FLAG = 0b10
+
+PREFER_POSITIVE_AMOUNTS = True
