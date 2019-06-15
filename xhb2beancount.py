@@ -153,6 +153,7 @@ class Beancount:
 
     def __init__(self):
         self.entries = []
+        self.transactions = []
         self.accounts = []
         self._lineno_counter = 0
 
@@ -184,14 +185,17 @@ class Beancount:
                        **posting_common_args),
         ]
 
-        self.entries.append(
+        self.transactions.append(
             bc.Transaction(self._get_meta(), date, flag=DEFAULT_FLAG,
                            payee=payee, narration=narration, tags=tags,
                            links=None, postings=postings)
         )
 
     def print(self, output):
-        printer.print_entries(self.entries, file=output)
+        printer.print_entries(
+            list(chain(self.entries, bc.sorted(self.transactions))),
+            file=output
+        )
 
     def _get_meta(self):
         self._lineno_counter += 1
