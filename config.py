@@ -17,6 +17,7 @@ TAGS_DICT = {
 }
 
 CATEGORIES_DICT = {
+    '(none)': 'None',
 }
 
 PAYEE_DICT = {
