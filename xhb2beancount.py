@@ -9,11 +9,12 @@ from itertools import chain
 import untangle
 from beancount.core import data as bc
 from beancount.parser import printer
+from text_unidecode import unidecode
 
 from config import (ACCOUNT_SEP, ACCOUNTS_DICT, ASSETS_ACCOUNT,
                     CATEGORIES_DICT, DEFAULT_DATE, DEFAULT_FLAG,
-                    EXPENSE_ACCOUNT, INCOME_ACCOUNT, INCOME_FLAG,
-                    PAYEE_DICT, TAGS_DICT)
+                    EXPENSE_ACCOUNT, INCOME_ACCOUNT, INCOME_FLAG, PAYEE_DICT,
+                    PREFER_POSITIVE_AMOUNTS, TAGS_DICT)
 
 
 class Homebank:
@@ -146,13 +147,15 @@ class Homebank:
 
 
 class Beancount:
+    NAME_FORBIDDEN_CHARS_REGEX = re.compile(r"[?/&()' \[\]\\]")
+
     def __init__(self):
         self.entries = []
         self.accounts = []
         self._lineno_counter = 0
 
-    def add_account(self, name, currency=None, initial_amount=None,
-                    date=DEFAULT_DATE, **_):
+    def add_account(self, name, date=DEFAULT_DATE, currency=None,
+                    initial_amount=None):
         name = self._format_account_name(name)
         self.accounts.append(name)
 
@@ -162,25 +165,27 @@ class Beancount:
             bc.Open(self._get_meta(), date, name, currencies, booking=None)
         )
 
-        return len(self.accounts) - 1  # index of last account inserted
+        return len(self.accounts) - 1  # index of the account on self.accounts
 
-    def add_transaction(self, date, payee, narration, accounts, amount,
-                        currency, tags):
-        transaction_meta = self._get_meta()
+    def add_transaction(self, date, payee, narration, main_account,
+                        other_account, amount, currency, tags):
+        posting_common_args = dict(cost=None, price=None, flag=None, meta=None)
 
-        posting_common_kwargs = dict(cost=None, price=None,
-                                     flag=None, meta=None)
+        if PREFER_POSITIVE_AMOUNTS and amount < 0:
+            main_account, other_account = other_account, main_account
+            amount = -amount
 
         postings = [
-            bc.Posting(accounts[0], bc.Amount(amount, currency),
-                       **posting_common_kwargs),
-            bc.Posting(accounts[1], None, **posting_common_kwargs),
+            bc.Posting(main_account, bc.Amount(amount, currency),
+                       **posting_common_args),
+            bc.Posting(other_account, None,
+                       **posting_common_args),
         ]
 
         self.entries.append(
-            bc.Transaction(transaction_meta, date, flag='*', payee=payee,
-                           narration=narration, tags=tags, links=None,
-                           postings=postings)
+            bc.Transaction(self._get_meta(), date, flag=DEFAULT_FLAG,
+                           payee=payee, narration=narration, tags=tags,
+                           links=None, postings=postings)
         )
 
     def print(self, output):
@@ -191,7 +196,8 @@ class Beancount:
         return {'lineno': self._lineno_counter}
 
     def _format_account_name(self, name):
-        return name.replace(' ', '-')
+        name = self.NAME_FORBIDDEN_CHARS_REGEX.sub('-', name)
+        return unidecode(name)
 
 
 def convert(xhb_filename):
