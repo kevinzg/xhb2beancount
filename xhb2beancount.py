@@ -12,7 +12,8 @@ from beancount.parser import printer
 
 from config import (ACCOUNT_SEP, ACCOUNTS_DICT, ASSETS_ACCOUNT,
                     CATEGORIES_DICT, DEFAULT_DATE, DEFAULT_FLAG,
-                    EXPENSE_ACCOUNT, INCOME_ACCOUNT, INCOME_FLAG, TAGS_DICT)
+                    EXPENSE_ACCOUNT, INCOME_ACCOUNT, INCOME_FLAG,
+                    PAYEE_DICT, TAGS_DICT)
 
 
 class Homebank:
@@ -108,7 +109,8 @@ class Homebank:
             op['currency'] = self.currencies[account['curr']]['iso']
 
             if 'payee' in op:
-                op['payee'] = self.payees[op['payee']]['name']
+                payee = self._translate_payee(self.payees[op['payee']]['name'])
+                op['payee'] = payee
 
             if 'category' in op:
                 op['category'] = self.categories[op['category']]['unique_id']
@@ -138,6 +140,9 @@ class Homebank:
 
     def _translate_tag(self, name):
         return TAGS_DICT.get(name, name)
+
+    def _translate_payee(self, name):
+        return PAYEE_DICT.get(name, name)
 
 
 class Beancount:
