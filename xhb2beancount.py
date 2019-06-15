@@ -12,9 +12,10 @@ from beancount.parser import printer
 from text_unidecode import unidecode
 
 from config import (ACCOUNT_SEP, ACCOUNTS_DICT, ASSETS_ACCOUNT,
-                    CATEGORIES_DICT, DEFAULT_DATE, DEFAULT_FLAG,
-                    EXPENSE_ACCOUNT, INCOME_ACCOUNT, INCOME_FLAG, PAYEE_DICT,
-                    PREFER_POSITIVE_AMOUNTS, TAGS_DICT)
+                    CATEGORIES_DICT, DEFAULT_BALANCE_DATE, DEFAULT_DATE,
+                    DEFAULT_FLAG, DEFAULT_PAD_DATE, EXPENSE_ACCOUNT,
+                    INCOME_ACCOUNT, INCOME_FLAG, OPENING_BALANCE_ACCOUNT,
+                    PAYEE_DICT, PREFER_POSITIVE_AMOUNTS, TAGS_DICT)
 
 
 class Homebank:
@@ -153,9 +154,12 @@ class Beancount:
 
     def __init__(self):
         self.entries = []
+        self.pad_balances = []
         self.transactions = []
         self.accounts = []
         self._lineno_counter = 0
+
+        self.add_account(OPENING_BALANCE_ACCOUNT)
 
     def add_account(self, name, date=DEFAULT_DATE, currency=None,
                     initial_amount=None):
@@ -167,6 +171,20 @@ class Beancount:
         self.entries.append(
             bc.Open(self._get_meta(), date, name, currencies, booking=None)
         )
+
+        if initial_amount is not None and initial_amount != 0:
+            assert currency is not None
+
+            self.pad_balances.append(
+                bc.Pad(self._get_meta(), date=DEFAULT_PAD_DATE, account=name,
+                       source_account=OPENING_BALANCE_ACCOUNT)
+            )
+            self.pad_balances.append(
+                bc.Balance(self._get_meta(),
+                           date=DEFAULT_BALANCE_DATE, account=name,
+                           amount=bc.Amount(initial_amount, currency),
+                           tolerance=None, diff_amount=None)
+            )
 
         return len(self.accounts) - 1  # index of the account on self.accounts
 
@@ -193,7 +211,11 @@ class Beancount:
 
     def print(self, output):
         printer.print_entries(
-            list(chain(self.entries, bc.sorted(self.transactions))),
+            list(chain(
+                self.entries,
+                self.pad_balances,
+                bc.sorted(self.transactions)
+            )),
             file=output
         )
 
