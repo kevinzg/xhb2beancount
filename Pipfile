@@ -6,6 +6,7 @@ verify_ssl = true
 [packages]
 untangle = "*"
 beancount = "*"
+text-unidecode = "*"
 
 [dev-packages]
 ipython = "*"
