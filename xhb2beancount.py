@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 
 import datetime
+import re
+import sys
 from decimal import Decimal
 from itertools import chain
-import sys
 
+import untangle
 from beancount.core import data as bc
 from beancount.parser import printer
 
-import untangle
-
-from config import (
-    DEFAULT_DATE, EXPENSE_ACCOUNT, INCOME_ACCOUNT, ASSETS_ACCOUNT,
-    ACCOUNTS_DICT, INCOME_FLAG, ACCOUNT_SEP
-)
+from config import (ACCOUNT_SEP, ACCOUNTS_DICT, ASSETS_ACCOUNT, DEFAULT_DATE,
+                    EXPENSE_ACCOUNT, INCOME_ACCOUNT, INCOME_FLAG)
 
 
 def translate_account_name(name):
