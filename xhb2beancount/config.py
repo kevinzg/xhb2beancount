@@ -25,7 +25,6 @@ CATEGORIES_DICT = {
 }
 
 PAYEE_DICT = {
-    'Father': 'Dad',
 }
 
 PREFER_POSITIVE_AMOUNTS = True
