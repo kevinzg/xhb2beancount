@@ -246,7 +246,7 @@ def convert(xhb_filename):
     account_map = {}
 
     for item in chain(xhb.accounts.values(), xhb.categories.values()):
-        if not item['include']:
+        if config.REMOVE_EMPTY_CATEGORIES and not item['include']:
             continue
 
         name = ':'.join((item['type'], item['name']))
