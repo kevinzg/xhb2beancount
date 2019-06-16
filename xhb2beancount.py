@@ -151,6 +151,7 @@ class Beancount:
     NAME_FORBIDDEN_CHARS_REGEX = re.compile(r"[?/&()' \[\]\\]")
     DASH_COLON_DASH_REGEX = re.compile(r'-*:-*')
     DASH_EOL_REGEX = re.compile(r'-+$')
+    DASH_DASH_REGEX = re.compile(r'--+')
 
     def __init__(self):
         self.entries = []
@@ -227,6 +228,7 @@ class Beancount:
         name = self.NAME_FORBIDDEN_CHARS_REGEX.sub('-', name)
         name = self.DASH_COLON_DASH_REGEX.sub(':', name)
         name = self.DASH_EOL_REGEX.sub('', name)
+        name = self.DASH_DASH_REGEX.sub('-', name)
         return unidecode(name)
 
 
