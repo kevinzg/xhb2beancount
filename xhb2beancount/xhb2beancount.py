@@ -2,7 +2,6 @@
 
 import datetime
 import re
-import sys
 from decimal import Decimal
 from itertools import chain
 
@@ -284,12 +283,3 @@ def convert(xhb_filename):
         )
 
     return beancount
-
-
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print(f'Usage: {sys.argv[0]} file.xhb', file=sys.stderr)
-        exit(1)
-
-    beancount = convert(sys.argv[1])
-    beancount.print(sys.stdout)
