@@ -11,15 +11,12 @@ from beancount.core import data as bc
 from beancount.parser import printer
 from text_unidecode import unidecode
 
-from config import (ACCOUNT_SEP, ACCOUNTS_DICT, ASSETS_ACCOUNT,
-                    CATEGORIES_DICT, DEFAULT_BALANCE_DATE, DEFAULT_DATE,
-                    DEFAULT_FLAG, DEFAULT_PAD_DATE, EXPENSE_ACCOUNT,
-                    INCOME_ACCOUNT, INCOME_FLAG, OPENING_BALANCE_ACCOUNT,
-                    PAYEE_DICT, PREFER_POSITIVE_AMOUNTS, TAGS_DICT)
+import config
 
 
 class Homebank:
     INTERNAL_TRANSFER = '5'
+    INCOME_FLAG = 0b10
     TAG_SEP_REGEX = re.compile(r'[\s,]')
 
     def __init__(self, data=None):
@@ -64,9 +61,9 @@ class Homebank:
     def _get_category_type(self, category):
         flags = int(category.get('flags', 0))
 
-        is_income = flags & INCOME_FLAG
+        is_income = flags & self.INCOME_FLAG
 
-        return INCOME_ACCOUNT if is_income else EXPENSE_ACCOUNT
+        return config.INCOME_ACCOUNT if is_income else config.EXPENSE_ACCOUNT
 
     def _resolve_category_name(self, category):
         name = [category['name']]
@@ -75,7 +72,7 @@ class Homebank:
             category = self.categories[category['parent']]
             name.append(category['name'])
 
-        return ACCOUNT_SEP.join(reversed(name))
+        return ':'.join(name)
 
     def _postprocess_categories(self):
         for key, category in self.categories.items():
@@ -90,7 +87,7 @@ class Homebank:
         for key, account in self.accounts.items():
             name = account['name']
             account['name'] = self._translate_account(name)
-            account['type'] = ASSETS_ACCOUNT
+            account['type'] = config.ASSETS_ACCOUNT
             account['initial'] = self._parse_float(account['initial'])
             account['currency'] = self.currencies[account['curr']]['iso']
 
@@ -141,16 +138,16 @@ class Homebank:
         return datetime.date(1, 1, 1) + datetime.timedelta(days=int(value) - 1)
 
     def _translate_account(self, name):
-        return ACCOUNTS_DICT.get(name, name)
+        return config.ACCOUNTS_DICT.get(name, name)
 
     def _translate_category(self, name):
-        return CATEGORIES_DICT.get(name, name)
+        return config.CATEGORIES_DICT.get(name, name)
 
     def _translate_tag(self, name):
-        return TAGS_DICT.get(name, name)
+        return config.TAGS_DICT.get(name, name)
 
     def _translate_payee(self, name):
-        return PAYEE_DICT.get(name, name)
+        return config.PAYEE_DICT.get(name, name)
 
 
 class Beancount:
@@ -166,10 +163,11 @@ class Beancount:
         self.accounts = []
         self._lineno_counter = 0
 
-        self.add_account(OPENING_BALANCE_ACCOUNT)
+        self.add_account(config.OPENING_BALANCE_ACCOUNT)
 
-    def add_account(self, name, date=DEFAULT_DATE, currency=None,
+    def add_account(self, name, date=None, currency=None,
                     initial_amount=None):
+        date = date or config.DEFAULT_DATE
         name = self._format_account_name(name)
         self.accounts.append(name)
 
@@ -183,12 +181,13 @@ class Beancount:
             assert currency is not None
 
             self.pad_balances.append(
-                bc.Pad(self._get_meta(), date=DEFAULT_PAD_DATE, account=name,
-                       source_account=OPENING_BALANCE_ACCOUNT)
+                bc.Pad(self._get_meta(), date=config.DEFAULT_PAD_DATE,
+                       account=name,
+                       source_account=config.OPENING_BALANCE_ACCOUNT)
             )
             self.pad_balances.append(
                 bc.Balance(self._get_meta(),
-                           date=DEFAULT_BALANCE_DATE, account=name,
+                           date=config.DEFAULT_BALANCE_DATE, account=name,
                            amount=bc.Amount(initial_amount, currency),
                            tolerance=None, diff_amount=None)
             )
@@ -199,7 +198,7 @@ class Beancount:
                         other_account, amount, currency, tags):
         posting_common_args = dict(cost=None, price=None, flag=None, meta=None)
 
-        if PREFER_POSITIVE_AMOUNTS and amount < 0:
+        if config.PREFER_POSITIVE_AMOUNTS and amount < 0:
             main_account, other_account = other_account, main_account
             amount = -amount
 
@@ -211,7 +210,7 @@ class Beancount:
         ]
 
         self.transactions.append(
-            bc.Transaction(self._get_meta(), date, flag=DEFAULT_FLAG,
+            bc.Transaction(self._get_meta(), date, flag=config.DEFAULT_FLAG,
                            payee=payee, narration=narration, tags=tags,
                            links=None, postings=postings)
         )
@@ -249,7 +248,8 @@ def convert(xhb_filename):
     for item in chain(xhb.accounts.values(), xhb.categories.values()):
         if not item['include']:
             continue
-        name = ACCOUNT_SEP.join((item['type'], item['name']))
+
+        name = ':'.join((item['type'], item['name']))
 
         id_ = beancount.add_account(
             name=name,
