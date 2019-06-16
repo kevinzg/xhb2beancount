@@ -1,6 +1,5 @@
 import datetime
 
-
 DEFAULT_DATE = datetime.date(1970, 1, 1)
 DEFAULT_PAD_DATE = datetime.date(1970, 1, 2)
 DEFAULT_BALANCE_DATE = datetime.date(1970, 1, 3)

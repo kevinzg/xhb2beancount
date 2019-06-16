@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-
 import datetime
 import re
+import warnings
 from decimal import Decimal
 from itertools import chain
 
-import untangle
 from beancount.core import data as bc
 from beancount.parser import printer
 from text_unidecode import unidecode
@@ -236,8 +234,7 @@ class Beancount:
         return unidecode(name)
 
 
-def convert(xhb_filename):
-    xml = untangle.parse(xhb_filename)
+def _convert(xml):
     xhb = Homebank(xml.homebank)
 
     beancount = Beancount()
@@ -265,7 +262,7 @@ def convert(xhb_filename):
 
         if paymode == Homebank.INTERNAL_TRANSFER:
             if amount < 0:
-                continue  # only register the postive transfer
+                continue  # only register the positive transfer
 
             other_account = beancount.accounts[account_map[op['dst_account']]]
         else:
@@ -283,3 +280,25 @@ def convert(xhb_filename):
         )
 
     return beancount
+
+
+def convert(xml, config=None):
+    if config is not None:
+        _overwrite_config(config)
+
+    return _convert(xml)
+
+
+def _overwrite_config(new_config):
+    global config
+
+    for attribute in dir(new_config):
+        if attribute.startswith('_'):
+            continue
+
+        if hasattr(config, attribute):
+            value = getattr(new_config, attribute)
+            setattr(config, attribute, value)
+        else:
+            msg = f"Unrecognized config attribute {attribute}."
+            warnings.warn(msg)
