@@ -84,6 +84,7 @@ class Homebank:
             category['type'] = self._get_category_type(category)
 
             category['unique_id'] = self._make_unique_id('category', key)
+            category['include'] = False
 
     def _postprocess_accounts(self):
         for key, account in self.accounts.items():
@@ -94,6 +95,7 @@ class Homebank:
             account['currency'] = self.currencies[account['curr']]['iso']
 
             account['unique_id'] = self._make_unique_id('account', key)
+            account['include'] = True
 
     def _postprocess_operations(self):
         for op in self.operations:
@@ -101,12 +103,14 @@ class Homebank:
             op['amount'] = self._parse_float(op['amount'])
 
             account = self.accounts[op['account']]
-            if 'account' in op:
-                op['account'] = account['unique_id']
+            op['account'] = account['unique_id']
+
+            ignore_category = False
 
             if 'dst_account' in op:
                 dst_account = self.accounts[op['dst_account']]
                 op['dst_account'] = dst_account['unique_id']
+                ignore_category = True
 
             op['currency'] = self.currencies[account['curr']]['iso']
 
@@ -114,8 +118,10 @@ class Homebank:
                 payee = self._translate_payee(self.payees[op['payee']]['name'])
                 op['payee'] = payee
 
-            if 'category' in op:
-                op['category'] = self.categories[op['category']]['unique_id']
+            if 'category' in op and not ignore_category:
+                category = self.categories[op['category']]
+                op['category'] = category['unique_id']
+                category['include'] = True
 
             if 'tags' in op:
                 op['tags'] = [self._translate_tag(tag)
@@ -241,6 +247,8 @@ def convert(xhb_filename):
     account_map = {}
 
     for item in chain(xhb.accounts.values(), xhb.categories.values()):
+        if not item['include']:
+            continue
         name = ACCOUNT_SEP.join((item['type'], item['name']))
 
         id_ = beancount.add_account(
