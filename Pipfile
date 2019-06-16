@@ -12,6 +12,7 @@ text-unidecode = "*"
 ipython = "*"
 ipdb = "*"
 flake8 = "*"
+twine = "*"
 
 [requires]
 python_version = "3"
