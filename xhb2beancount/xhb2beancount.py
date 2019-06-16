@@ -11,7 +11,7 @@ from beancount.core import data as bc
 from beancount.parser import printer
 from text_unidecode import unidecode
 
-import config
+from . import config
 
 
 class Homebank:
