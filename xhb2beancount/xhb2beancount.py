@@ -69,7 +69,7 @@ class Homebank:
             category = self.categories[category['parent']]
             name.append(category['name'])
 
-        return ':'.join(name)
+        return ':'.join(reversed(name))
 
     def _postprocess_categories(self):
         for key, category in self.categories.items():
