@@ -231,7 +231,8 @@ class Beancount:
         name = self.DASH_COLON_DASH_REGEX.sub(':', name)
         name = self.DASH_EOL_REGEX.sub('', name)
         name = self.DASH_DASH_REGEX.sub('-', name)
-        return unidecode(name)
+        name = unidecode(name)
+        return config.BC_ACCOUNTS_DICT.get(name, name)
 
 
 def _convert(xml):

@@ -34,6 +34,11 @@ CATEGORIES_DICT = {
 PAYEE_DICT = {
 }
 
+# Beancount accounts will be renamed using this dictionary.
+BC_ACCOUNTS_DICT = {
+    'Income:Wage-and-Salary:Net-Pay': 'Income:Wage-Salary:Net-Pay',
+}
+
 # Prefer positive amounts will swap the accounts and multiply the amount by -1
 # if the amount is negative. It doesn't affect internal transfers.
 PREFER_POSITIVE_AMOUNTS = True
