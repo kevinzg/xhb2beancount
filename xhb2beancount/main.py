@@ -4,7 +4,7 @@ import sys
 
 import untangle
 
-from xhb2beancount import convert
+from xhb2beancount import convert, overwrite_config, print_dicts
 
 parser = argparse.ArgumentParser(
     prog='xhb2beancount',
@@ -37,10 +37,19 @@ parser.add_argument('object', help="Homebank filename",
                     type=untangle_file, metavar='filename')
 parser.add_argument('--config', help="Python config file",
                     type=config_file, default=None)
+parser.add_argument('--print-config-dicts',
+                    help="Print Homebank rename dictionaries",
+                    action='store_true')
 
 
 def main():
     args = parser.parse_args()
 
-    beancount = convert(args.object, args.config)
-    beancount.print(sys.stdout)
+    if args.config:
+        overwrite_config(args.config)
+
+    if args.print_config_dicts:
+        print_dicts(args.object, output=sys.stdout)
+    else:
+        beancount = convert(args.object)
+        beancount.print(sys.stdout)

@@ -1,8 +1,10 @@
 import datetime
 import re
+import sys
 import warnings
 from decimal import Decimal
 from itertools import chain
+from pprint import pformat
 
 from beancount.core import data as bc
 from beancount.parser import printer
@@ -53,6 +55,7 @@ class Homebank:
 
         self._postprocess_accounts()
         self._postprocess_categories()
+        self._postprocess_payees()
         self._postprocess_operations()
 
     def _get_category_type(self, category):
@@ -63,17 +66,19 @@ class Homebank:
         return config.INCOME_ACCOUNT if is_income else config.EXPENSE_ACCOUNT
 
     def _resolve_category_name(self, category):
-        name = [category['_name']]
+        name = [category['_translated_name']]
 
         while 'parent' in category:
             category = self.categories[category['parent']]
-            name.append(category['_name'])
+            name.append(category['_translated_name'])
 
         return tuple(reversed(name))
 
     def _postprocess_categories(self):
         for category in self.categories.values():
-            category['_name'] = self._translate_category(category['name'])
+            category['_name'] = category['name']
+            category['_translated_name'] = (
+                self._translate_category(category['name']))
 
         for key, category in self.categories.items():
             category['name'] = self._resolve_category_name(category)
@@ -85,13 +90,20 @@ class Homebank:
     def _postprocess_accounts(self):
         for key, account in self.accounts.items():
             name = account['name']
-            account['name'] = (self._translate_account(name),)
+            account['_name'] = name
+            account['_str_name'] = self._translate_account(name)
+            account['name'] = (account['_str_name'],)
             account['type'] = config.ASSETS_ACCOUNT
             account['initial'] = self._parse_float(account['initial'])
             account['currency'] = self.currencies[account['curr']]['iso']
 
             account['unique_id'] = self._make_unique_id('account', key)
             account['include'] = True
+
+    def _postprocess_payees(self):
+        for payee in self.payees.values():
+            payee['_name'] = payee['name']
+            payee['name'] = self._translate_payee(payee['name'])
 
     def _postprocess_operations(self):
         for op in self.operations:
@@ -111,7 +123,7 @@ class Homebank:
             op['currency'] = self.currencies[account['curr']]['iso']
 
             if 'payee' in op:
-                payee = self._translate_payee(self.payees[op['payee']]['name'])
+                payee = self.payees[op['payee']]['name']
                 op['payee'] = payee
 
             if 'category' in op and not ignore_category:
@@ -237,7 +249,7 @@ class Beancount:
         return config.BC_ACCOUNTS_DICT.get(name, name)
 
 
-def _convert(xml):
+def convert(xml):
     xhb = Homebank(xml.homebank)
 
     beancount = Beancount()
@@ -285,14 +297,39 @@ def _convert(xml):
     return beancount
 
 
-def convert(xml, config=None):
-    if config is not None:
-        _overwrite_config(config)
+def print_dicts(xml, output=None):
+    if output is None:
+        output = sys.stdout
 
-    return _convert(xml)
+    homebank = Homebank(xml.homebank)
+
+    def build_dict(iterable, key1='_name', key2='name', filter_=None):
+        return {
+            item[key1]: item[key2] for item in iterable
+            if filter_ is None or filter_(item)
+        }
+
+    dicts = [
+        ('CATEGORIES_DICT',
+         build_dict(
+             homebank.categories.values(),
+             key2='_translated_name',
+             filter_=lambda item: (item.get('include') or
+                                   not config.REMOVE_EMPTY_CATEGORIES))),
+        ('ACCOUNTS_DICT',
+         build_dict(homebank.accounts.values(), key2='_str_name')),
+        ('PAYEE_DICT',
+         build_dict(homebank.payees.values())),
+    ]
+
+    for name, dict_ in dicts:
+        print("{name} = \\\n{dict}".format(
+            name=name,
+            dict=pformat(dict_, indent=4),
+        ), file=output)
 
 
-def _overwrite_config(new_config):
+def overwrite_config(new_config):
     global config
 
     for attribute in dir(new_config):
