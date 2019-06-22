@@ -35,9 +35,9 @@ def config_file(filename):
 
 parser.add_argument('object', help="Homebank filename",
                     type=untangle_file, metavar='filename')
-parser.add_argument('--config', help="Python config file",
+parser.add_argument('--config', '-c', help="Python config file",
                     type=config_file, default=None)
-parser.add_argument('--print-config-dicts',
+parser.add_argument('--print-config-dicts', '-p',
                     help="Print Homebank rename dictionaries",
                     action='store_true')
 
