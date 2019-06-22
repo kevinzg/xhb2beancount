@@ -63,18 +63,20 @@ class Homebank:
         return config.INCOME_ACCOUNT if is_income else config.EXPENSE_ACCOUNT
 
     def _resolve_category_name(self, category):
-        name = [category['name']]
+        name = [category['_name']]
 
         while 'parent' in category:
             category = self.categories[category['parent']]
-            name.append(category['name'])
+            name.append(category['_name'])
 
-        return ':'.join(reversed(name))
+        return tuple(reversed(name))
 
     def _postprocess_categories(self):
+        for category in self.categories.values():
+            category['_name'] = self._translate_category(category['name'])
+
         for key, category in self.categories.items():
-            name = self._resolve_category_name(category)
-            category['name'] = self._translate_category(name)
+            category['name'] = self._resolve_category_name(category)
             category['type'] = self._get_category_type(category)
 
             category['unique_id'] = self._make_unique_id('category', key)
@@ -83,7 +85,7 @@ class Homebank:
     def _postprocess_accounts(self):
         for key, account in self.accounts.items():
             name = account['name']
-            account['name'] = self._translate_account(name)
+            account['name'] = (self._translate_account(name),)
             account['type'] = config.ASSETS_ACCOUNT
             account['initial'] = self._parse_float(account['initial'])
             account['currency'] = self.currencies[account['curr']]['iso']
@@ -246,7 +248,7 @@ def _convert(xml):
         if config.REMOVE_EMPTY_CATEGORIES and not item['include']:
             continue
 
-        name = ':'.join((item['type'], item['name']))
+        name = ':'.join((item['type'], *item['name']))
 
         id_ = beancount.add_account(
             name=name,
