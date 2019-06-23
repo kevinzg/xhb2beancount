@@ -18,7 +18,13 @@ Or just create a virtualenv and run `pip install xhb2beancount`.
 xhb2beancount file.xhb > file.beancount
 ```
 
-You can configurate the conversion passing a config file as an argument.
+If you have beancount installed you can format it with bean-format.
+
+```sh
+xhb2beancount file.xhb | bean-format -c 78 > file.beancount
+```
+
+You can customize the conversion passing a config file as an argument.
 
 ```sh
 xhb2beancount --config config.py file.xhb
@@ -26,8 +32,9 @@ xhb2beancount --config config.py file.xhb
 
 Copy the [default config file](https://github.com/kevinzg/xhb2beancount/blob/master/xhb2beancount/config.py) and edit it to suit your needs.
 
-If you have beancount installed you can format it with bean-format.
+You can also use the option `--print-config-dicts` to print the categories, accounts, payees and tags
+from your Homebank file as dictionares and copy them to your config file.
 
 ```sh
-xhb2beancount file.xhb | bean-format -c 78 > file.beancount
+xhb2beancount file.xhb --print-config-dicts
 ```
