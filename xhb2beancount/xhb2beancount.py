@@ -35,8 +35,8 @@ class Homebank:
             (self.currencies, 'cur'),
             (self.accounts, 'account'),
             (self.categories, 'cat'),
-            (self.tags, 'tag'),
             (self.payees, 'pay'),
+            # (self.tags, 'tag'), not used
         ]
 
         for dict_, name in stuff:
@@ -132,8 +132,13 @@ class Homebank:
                 category['include'] = True
 
             if 'tags' in op:
-                op['tags'] = [self._translate_tag(tag)
-                              for tag in self._split_tags(op['tags'])]
+                tags = self._split_tags(op['tags'])
+                self._register_tags(tags)
+                op['tags'] = [self.tags[tag] for tag in tags]
+
+    def _register_tags(self, tags):
+        for tag in tags:
+            self.tags[tag] = self._translate_tag(tag)
 
     def _make_unique_id(self, kind, key):
         return f'{kind}_{key}'
@@ -320,6 +325,7 @@ def print_dicts(xml, output=None):
          build_dict(homebank.accounts.values(), key2='_str_name')),
         ('PAYEE_DICT',
          build_dict(homebank.payees.values())),
+        ('TAGS_DICT', homebank.tags),
     ]
 
     for name, dict_ in dicts:
