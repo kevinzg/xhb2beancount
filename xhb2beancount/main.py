@@ -4,7 +4,8 @@ import sys
 
 import untangle
 
-from xhb2beancount import convert, overwrite_config, print_dicts
+from . import __version__
+from .xhb2beancount import convert, overwrite_config, print_dicts
 
 parser = argparse.ArgumentParser(
     prog='xhb2beancount',
@@ -43,6 +44,8 @@ parser.add_argument('--config', '-c', help="Python config file",
 parser.add_argument('--print-config-dicts', '-p',
                     help="Print Homebank rename dictionaries",
                     action='store_true')
+parser.add_argument('--version', '-v', action='version',
+                    version='%(prog)s {}'.format(__version__))
 
 
 def main():
