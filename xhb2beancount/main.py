@@ -8,7 +8,7 @@ from xhb2beancount import convert, overwrite_config, print_dicts
 
 parser = argparse.ArgumentParser(
     prog='xhb2beancount',
-    description="Convert Homebank files to Beancount format.",
+    description="Convert Homebank files to Beancount text files.",
 )
 
 
@@ -36,10 +36,10 @@ def config_file(filename):
     return mod
 
 
-parser.add_argument('object', help="Homebank filename",
-                    type=untangle_file, metavar='filename')
+parser.add_argument('object', help="Homebank file",
+                    type=untangle_file, metavar='file.xhb')
 parser.add_argument('--config', '-c', help="Python config file",
-                    type=config_file, default=None)
+                    type=config_file, default=None, metavar='config.py')
 parser.add_argument('--print-config-dicts', '-p',
                     help="Print Homebank rename dictionaries",
                     action='store_true')
