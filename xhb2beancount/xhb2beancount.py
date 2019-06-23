@@ -74,6 +74,13 @@ class Homebank:
 
         return tuple(reversed(name))
 
+    def _include_category(self, category):
+        while not category['include'] and 'parent' in category:
+            category['include'] = True
+            category = self.categories[category['parent']]
+
+        category['include'] = True
+
     def _postprocess_categories(self):
         for category in self.categories.values():
             category['_name'] = category['name']
@@ -129,7 +136,7 @@ class Homebank:
             if 'category' in op and not ignore_category:
                 category = self.categories[op['category']]
                 op['category'] = category['unique_id']
-                category['include'] = True
+                self._include_category(category)
 
             if 'tags' in op:
                 tags = self._split_tags(op['tags'])
