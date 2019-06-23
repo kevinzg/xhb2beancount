@@ -14,9 +14,10 @@ parser = argparse.ArgumentParser(
 
 def untangle_file(filename):
     try:
-        xml = untangle.parse(filename)
-        xml.homebank
-        return xml
+        with open(filename, mode='rt') as file:
+            xml = untangle.parse(file)
+            xml.homebank
+            return xml
     except Exception as ex:
         msg = "Invalid Homebank file"
         raise argparse.ArgumentTypeError(msg) from ex
